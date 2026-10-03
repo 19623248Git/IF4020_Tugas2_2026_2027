@@ -1,5 +1,5 @@
 from venture128.modules.util import r_shift_row_bytes, r_inv_shift_row_bytes, whiten
-from venture128.modules.type2_gfn import f_feistel, gfn_permutate, gfn_inv_permutate
+from venture128.modules.type2_gfn import gfn, gfn_permutate, gfn_inv_permutate
 
 def bytes_to_state(block: bytes) -> list[int]:
     return [int.from_bytes(block[4 * j:4 * j + 4], "big") for j in range(4)]
@@ -31,7 +31,7 @@ def encrypt_block(block: bytes, round_keys) -> bytes:
             row 3 [ 03   07   0B   0F ]
             """
             s = r_shift_row_bytes(s)
-        s = f_feistel(s, rk[2 * r], rk[2 * r + 1])
+        s = gfn(s, rk[2 * r], rk[2 * r + 1])
         s = gfn_permutate(s)
     return state_to_bytes(whiten(s, wk_post))
 
@@ -42,7 +42,7 @@ def decrypt_block(block: bytes, round_keys) -> bytes:
     s = whiten(bytes_to_state(block), wk_post)
     for r in reversed(range(len(rk) // 2)):
         s = gfn_inv_permutate(s)
-        s = f_feistel(s, rk[2 * r], rk[2 * r + 1])
+        s = gfn(s, rk[2 * r], rk[2 * r + 1])
         if r % 2 == 0:
             # because of encryption rule
             s = r_inv_shift_row_bytes(s)
