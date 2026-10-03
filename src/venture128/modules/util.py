@@ -41,3 +41,8 @@ def r_inv_shift_row_bytes(s: list[int]) -> list[int]:
         for row in range(4):
             ret[(col - row) % 4] |= get_byte_from_state(s[col], row) << (24 - 8 * row)
     return ret
+
+def whiten(state: list[int], whitening_key: list[int]) -> list[int]:
+    s0, s1, s2, s3 = state
+    w0, w1, w2, w3 = whitening_key
+    return [s0 ^ w0, s1 ^ w1, s2 ^ w2, s3 ^ w3]
