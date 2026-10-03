@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
-tugas2 = "tugas2:main"
+venture128 = "venture128:main"
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13.0"]
