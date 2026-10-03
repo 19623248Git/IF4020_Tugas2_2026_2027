@@ -1,7 +1,7 @@
 [project]
-name = "tugas2"
+name = "venture128"
 version = "0.1.0"
-description = "Add your description here"
+description = "Custom Cipher Block Encryption for IF4020_Tugas2_2026_2027"
 readme = "README.md"
 authors = [
     { name = "19623248Git", email = "13523032@std.stei.itb.ac.id" }

@@ -1,4 +1,4 @@
-from tugas2.variables.constants import DSM_GF_MULT_TABLE
+from venture128.variables.constants import DSM_GF_MULT_TABLE
 
 # DIFUSION SWITCHING MECHANISM
 # Source: https://www.rfc-editor.org/info/rfc6114/#section-4.4 
