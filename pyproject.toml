@@ -1,0 +1,17 @@
+[project]
+name = "tugas2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "19623248Git", email = "13523032@std.stei.itb.ac.id" }
+]
+requires-python = ">=3.14"
+dependencies = []
+
+[project.scripts]
+tugas2 = "tugas2:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

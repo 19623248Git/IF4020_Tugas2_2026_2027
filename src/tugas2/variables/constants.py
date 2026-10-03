@@ -1,4 +1,4 @@
-from modules.gallois_field import gallois_field_8
+from tugas2.modules.gallois_field import gallois_field_8
 
 # BLOCK SIZES
 BLOCK_SIZE_BITS = 128
