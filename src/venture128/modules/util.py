@@ -18,3 +18,10 @@ def sub_s_box(word: int) -> int:
         (SBOX[word >> 8 & 0XFF] << 8) |
         (SBOX[word & 0XFF])
     )
+
+def add_mod_2_to_16(word_x: int, word_y: int) -> int:
+    # split calculation into two 16-bit parts because x and y is 32 bits
+    a = ((word_x >> 16) + (word_y >> 16)) & 0xFFFF
+    b = ((word_x & 0xFFFF) + (word_y & 0XFFFF)) & 0xFFFF
+    return (a << 16) | b
+
