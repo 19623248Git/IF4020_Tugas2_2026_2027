@@ -25,3 +25,19 @@ def add_mod_2_to_16(word_x: int, word_y: int) -> int:
     b = ((word_x & 0xFFFF) + (word_y & 0XFFFF)) & 0xFFFF
     return (a << 16) | b
 
+def get_byte_from_state(word: int, row: int) -> int:
+    return (word >> (24 - 8 * row)) & 0xFF
+
+def r_shift_row_bytes(s: list[int]) -> list[int]:
+    ret = [0, 0, 0, 0]
+    for col in range(4):
+        for row in range(4):
+            ret[(col + row) % 4] |= get_byte_from_state(s[col], row) << (24 - 8 * row)
+    return ret
+
+def r_inv_shift_row_bytes(s: list[int]) -> list[int]:
+    ret = [0, 0, 0, 0]
+    for col in range(4):
+        for row in range(4):
+            ret[(col - row) % 4] |= get_byte_from_state(s[col], row) << (24 - 8 * row)
+    return ret
