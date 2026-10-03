@@ -1,3 +1,5 @@
+from modules.gallois_field import gallois_field_8
+
 # BLOCK SIZES
 BLOCK_SIZE_BITS = 128
 BLOCK_SIZE_BYTES = BLOCK_SIZE_BITS // 8
