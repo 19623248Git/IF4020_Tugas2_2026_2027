@@ -59,6 +59,16 @@ DSM_GF = gallois_field_8(DSM_POLY)
 DSM_GF_MULT_TABLE = DSM_GF.mult_table_gen()
 
 # RCON FOR KEY EXPANSION
-RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
+# we're using the DSM's poly of 0x11D for RCON gen
+# same concept but different poly
+def rcon_gen(n: int) -> list[int]:
+    rcon = []
+    r = 0x01
+    for _ in range(n):
+        rcon.append(r)
+        r = DSM_GF_MULT_TABLE[r, 0x02]
+    return rcon
+
+RCON = rcon_gen(20)
 
 
