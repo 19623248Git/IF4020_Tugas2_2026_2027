@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
-venture128 = "venture128:main"
+venture128 = "venture128.main:main"
 find_sbox_consts = "venture128.find_s_box.sboxfinder:find_consts"
 generate_sbox = "venture128.find_s_box.sboxfinder:generate_s_box"
 
