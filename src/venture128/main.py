@@ -1,4 +1,5 @@
 import argparse
+from venture128.variables.constants import KEY_SIZE_BYTES
 
 BLOCK_MODES = {
     1: "ecb", 
@@ -7,6 +8,8 @@ BLOCK_MODES = {
     4: "ofb", 
     5: "ctr"
 }
+
+STDIN_ARG = "-"
 
 def block_mode_type(value: str) -> str:
     v = value.strip().lower()
@@ -24,6 +27,80 @@ def build_parser():
         type=block_mode_type,
         required=True,
         metavar=BLOCK_MODES
+    )
+
+    # encrypt or decrypt mode
+    p1=p.add_mutually_exclusive_group(required=True)
+    p1.add_argument(
+        "-e",
+        dest="enc_dec_mode",
+        action="store_const",
+        const="encrypt",
+        help="encryption mode"
+    )
+    p1.add_argument(
+        "-d",
+        dest="enc_dec_mode",
+        action="store_const",
+        const="decrypt",
+        help="decryption mode"
+    )
+
+    # key input
+    p2 = p.add_mutually_exclusive_group(required=True)
+    p2.add_argument(
+        "-key", 
+        metavar="STRING", 
+        help=f"key as {KEY_SIZE_BYTES}-character string"
+    )
+    p2.add_argument(
+        "-key-file", 
+        metavar="PATH", 
+        help=f"read file with {KEY_SIZE_BYTES}-byte key"
+    )
+    p2.add_argument(
+        "-key-hex", 
+        metavar="HEX", 
+        help=f"key as {KEY_SIZE_BYTES * 2} hex"
+    )
+
+    # data input
+    p3 = p.add_mutually_exclusive_group(required=True)
+    p3.add_argument(
+        "-f", 
+        dest="file", 
+        metavar="PATH", 
+        help="read input from a file"
+    )
+    p3.add_argument(
+        "-s", 
+        dest="string", 
+        metavar='"STRING"', 
+        help="input as a quoted string"
+    )
+    p3.add_argument(
+        "-hex", 
+        dest="hex", 
+        nargs="?", 
+        const=STDIN_ARG, 
+        metavar="HEX", 
+        help="input as hex"
+    )
+    p3.add_argument(
+        "-b", 
+        dest="bits", 
+        nargs="?", 
+        const=STDIN_ARG, 
+        metavar="BITS", 
+        help="input as bits"
+    )
+    p3.add_argument(
+        "-B", 
+        dest="bytes", 
+        nargs="?", 
+        const=STDIN_ARG, 
+        metavar="BYTES", 
+        help="input as byte values"
     )
     return p
 
