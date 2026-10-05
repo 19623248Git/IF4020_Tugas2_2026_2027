@@ -102,12 +102,26 @@ def build_parser():
         help="input as bits"
     )
     p3.add_argument(
-        "-B", 
-        dest="bytes", 
-        nargs="?", 
-        const=STDIN_ARG, 
-        metavar="BYTES", 
-        help="input as byte values"
+        "-Bd",
+        dest="byte_decimal",
+        nargs="?",
+        const=STDIN_ARG,
+        metavar='"BYTES"',
+        help='input as decimal byte values 0-255, e.g. "222 173 190 239"'
+    )
+    p3.add_argument(
+        "-Bl",
+        dest="byte_literal",
+        nargs="?",
+        const=STDIN_ARG,
+        metavar='"LITERAL"',
+        help="input as a Python bytes literal, e.g. \"b'\\xde\\xad\\xbe\\xef'\""
+    )
+    p3.add_argument(
+        "-raw",
+        dest="raw",
+        action="store_true",
+        help="read raw binary input from stdin, e.g. head -c 64 /dev/urandom | venture128 ... -raw"
     )
     p.add_argument(
         "-o", 
