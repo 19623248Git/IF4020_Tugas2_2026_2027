@@ -1,5 +1,5 @@
 import argparse
-from venture128.variables.constants import KEY_SIZE_BYTES
+from venture128.variables.constants import KEY_SIZE_BYTES, BLOCK_SIZE_BYTES
 
 BLOCK_MODES = {
     1: "ecb", 
@@ -64,6 +64,13 @@ def build_parser():
         help=f"key as {KEY_SIZE_BYTES * 2} hex"
     )
 
+    p.add_argument(
+        "-iv", 
+        nargs=2, 
+        metavar=("{file,hex,bits,bytes}", "VALUE"),
+        help=f"{BLOCK_SIZE_BYTES}-byte IV for CBC/CFB/OFB/CTR (if not included, then random generated iv prepended to ciphertext)",
+    )
+
     # data input
     p3 = p.add_mutually_exclusive_group(required=True)
     p3.add_argument(
@@ -101,6 +108,18 @@ def build_parser():
         const=STDIN_ARG, 
         metavar="BYTES", 
         help="input as byte values"
+    )
+    p.add_argument(
+        "-o", 
+        dest="output", 
+        metavar="PATH", 
+        help="write output to a file"
+    )
+    p.add_argument(
+        "-of", 
+        dest="out_format", 
+        choices=["raw", "hex", "bits"],
+        help="output format (if not included, then raw with -o or hex on stdout)",
     )
     return p
 
