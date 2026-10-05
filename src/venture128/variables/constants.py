@@ -66,7 +66,7 @@ def rcon_gen(n: int) -> list[int]:
     r = 0x01
     for _ in range(n):
         rcon.append(r)
-        r = DSM_GF_MULT_TABLE[r, 0x02]
+        r = DSM_GF_MULT_TABLE[r][0x02]
     return rcon
 
 RCON = rcon_gen(20)
