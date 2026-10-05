@@ -1,5 +1,7 @@
 import argparse
 from venture128.variables.constants import KEY_SIZE_BYTES, BLOCK_SIZE_BYTES
+from venture128.modules.key_expand import generate_round_keys
+from pathlib import Path
 
 BLOCK_MODES = {
     1: "ecb", 
@@ -137,12 +139,39 @@ def build_parser():
     )
     return p
 
+def parse_hex(text: str) -> bytes:
+    digits = "".join(text.split())
+    if digits[:2].lower() == "0x":
+        digits = digits[2:]
+    if len(digits) % 2:
+        raise ValueError("invalid hex input, not even length")
+    return bytes.fromhex(digits)
+
+def read_key(args: argparse.Namespace) -> bytes:
+    if args.key is not None:
+        key = args.key.encode()
+    elif args.key_hex is not None:
+        key = parse_hex(args.key_hex)
+    else:
+        key = Path(args.key_file).read_bytes()
+        if len(key) != KEY_SIZE_BYTES:
+            key = key.rstrip(b"\r\n")
+    if len(key) != KEY_SIZE_BYTES:
+        raise ValueError(f"key must be exactly {KEY_SIZE_BYTES} bytes, got {len(key)}")
+    return key
+
 def handle_args(args):
     return 0
 
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    try:
+        key = generate_round_keys(read_key(args))
+        
+    except ValueError as e:
+        parser.exit(1, f"venture128: error: {e}\n")
+        
 
 if __name__ == "__main__":
     main()
