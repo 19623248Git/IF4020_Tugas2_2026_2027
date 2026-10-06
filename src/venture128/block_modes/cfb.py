@@ -5,11 +5,12 @@ from venture128.variables.constants import BLOCK_SIZE_BYTES, BLOCK_SIZE_BITS
 
 
 def _parse_segment_size(segment_size: int) -> int:
-    if 1 <= segment_size <= BLOCK_SIZE_BITS:
-        return segment_size
-    if segment_size % 8 == 0 and 8 <= segment_size <= BLOCK_SIZE_BYTES * 8:
+    # segment_size is in bits (8 = CFB-8, 128 = full block), returns the segment length in bytes
+    if segment_size % 8 == 0 and 8 <= segment_size <= BLOCK_SIZE_BITS:
         return segment_size // 8
-    raise ValueError(f"Invalid segment_size {segment_size}.")
+    raise ValueError(
+        f"Invalid segment_size {segment_size}, must be a multiple of 8 bits from 8 to {BLOCK_SIZE_BITS}."
+    )
 
 
 def cfb_encrypt(
