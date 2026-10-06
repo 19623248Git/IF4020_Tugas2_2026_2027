@@ -319,6 +319,8 @@ def main() -> None:
                 iv = input_data[:BLOCK_SIZE_BYTES]
                 input_data = input_data[BLOCK_SIZE_BYTES:]
         if mode == "ecb":
+            if args.iv:
+                print("venture128: warning: ignorning -iv flag for ECB")
             res = (
                 ecb.ecb_encrypt(input_data, round_keys)
                 if args.enc_dec_mode == "encrypt"
