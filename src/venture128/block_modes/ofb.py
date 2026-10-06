@@ -7,7 +7,7 @@ def ofb_encrypt(data: bytes, keys, iv = None) -> tuple[bytes, bytes]:
     # TODO IMPLEMENT
     # NOTE iv is 16 bytes
     
-    return bytes(0), 0
+    return bytes(0), iv
 
 
 def ofb_decrypt(data: bytes, keys, iv = None) -> bytes:
