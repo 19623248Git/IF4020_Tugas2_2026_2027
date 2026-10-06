@@ -1,6 +1,7 @@
 import argparse
 import ast
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from venture128.block_modes import cbc, cfb, ctr, ecb, ofb
@@ -20,55 +21,110 @@ def block_mode_type(value: str) -> str:
     if v in BLOCK_MODES.values():
         return v
     raise argparse.ArgumentTypeError(
-        f"invalid block mode {value!r}, choose as follows: \n{BLOCK_MODES}"
+        f"invalid block mode {value!r}, choose 1/ecb, 2/cbc, 3/cfb, 4/ofb or 5/ctr"
     )
+
+
+DESCRIPTION = f"""\
+Venture128 block cipher ({BLOCK_SIZE_BYTES * 8}-bit block, {KEY_SIZE_BYTES * 8}-bit key).
+
+Encrypts or decrypts data with a {KEY_SIZE_BYTES}-byte key in ECB, CBC, CFB, OFB or CTR mode."""
+
+EPILOG = f"""\
+input formats:
+  -f plain.txt                 any file, read as raw bytes
+  -s "hello world"             UTF-8 text
+  -hex "de ad be ef"           hex digits, whitespace and a leading 0x are ignored
+  -b "01000001 01000010"       bits, whitespace is ignored, length must be a multiple of 8
+  -Bd "222 173 190 239"        decimal byte values 0-255, space separated
+  -Bl "b'\\xde\\xad\\xbe\\xef'"    Python bytes literal
+  -raw                         raw binary from stdin
+  -hex, -b, -Bd and -Bl with no value read their text from stdin instead
+
+IV (CBC, CFB, OFB, CTR):
+  without -iv, encryption generates a random {BLOCK_SIZE_BYTES}-byte IV and prepends it to the ciphertext
+  decryption reads it back from the first {BLOCK_SIZE_BYTES} bytes 
+  with -iv, the iv is not prepended, and must be given again to decrypt
+    -iv hex 000102030405060708090a0b0c0d0e0f
+    -iv file iv.bin
+    -iv bits "00000000 00000001 ..."
+    -iv bytes "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15"
+
+examples:
+  venture128 --block-mode ecb -e -key "0123456789abcdef" -s "hello" -o cipher.bin
+  venture128 --block-mode ecb -d -key "0123456789abcdef" -f cipher.bin -of raw
+  echo "deadbeef" | venture128 --block-mode cbc -e -key-file key.txt -hex
+  head -c 64 /dev/urandom | venture128 --block-mode 5 -e -key-hex 000102030405060708090a0b0c0d0e0f -raw
+  venture128 --block-mode 2 -e -key "0123456789abcdef" -s "hi" -of raw \\
+    | venture128 --block-mode 2 -d -key "0123456789abcdef" -raw -of raw"""
 
 
 def build_parser():
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(
+        prog="venture128",
+        description=DESCRIPTION,
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        allow_abbrev=False,
+    )
     p.add_argument(
-        "--block-mode", type=block_mode_type, required=True, metavar=BLOCK_MODES
+        "-v", "--version", action="version", version=f"%(prog)s {version('venture128')}"
     )
 
-    # encrypt or decrypt mode
-    p1 = p.add_mutually_exclusive_group(required=True)
+    # block mode and encrypt or decrypt mode
+    g_op = p.add_argument_group("operation")
+    g_op.add_argument(
+        "--block-mode",
+        type=block_mode_type,
+        required=True,
+        metavar="MODE",
+        help="1/ecb, 2/cbc, 3/cfb, 4/ofb or 5/ctr",
+    )
+    p1 = g_op.add_mutually_exclusive_group(required=True)
     p1.add_argument(
         "-e",
         dest="enc_dec_mode",
         action="store_const",
         const="encrypt",
-        help="encryption mode",
+        help="encrypt the input",
     )
     p1.add_argument(
         "-d",
         dest="enc_dec_mode",
         action="store_const",
         const="decrypt",
-        help="decryption mode",
+        help="decrypt the input",
     )
 
     # key input
-    p2 = p.add_mutually_exclusive_group(required=True)
+    g_key = p.add_argument_group("key (choose one)")
+    p2 = g_key.add_mutually_exclusive_group(required=True)
     p2.add_argument(
-        "-key", metavar="STRING", help=f"key as {KEY_SIZE_BYTES}-character string"
+        "-key", metavar='"STRING"', help=f"key as a {KEY_SIZE_BYTES}-character string"
     )
     p2.add_argument(
-        "-key-file", metavar="PATH", help=f"read file with {KEY_SIZE_BYTES}-byte key"
+        "-key-file",
+        metavar="PATH",
+        help=f"read a {KEY_SIZE_BYTES}-byte key from a file (a trailing newline is ignored)",
     )
-    p2.add_argument("-key-hex", metavar="HEX", help=f"key as {KEY_SIZE_BYTES * 2} hex")
+    p2.add_argument(
+        "-key-hex", metavar="HEX", help=f"key as {KEY_SIZE_BYTES * 2} hex digits"
+    )
 
-    p.add_argument(
+    g_iv = p.add_argument_group("initialization vector")
+    g_iv.add_argument(
         "-iv",
         nargs=2,
         metavar=("{file,hex,bits,bytes}", "VALUE"),
-        help=f"{BLOCK_SIZE_BYTES}-byte IV for CBC/CFB/OFB/CTR (if not included, then random generated iv prepended to ciphertext)",
+        help=f"{BLOCK_SIZE_BYTES}-byte IV for CBC/CFB/OFB/CTR, ignored by ECB (default: random, prepended to the ciphertext)",
     )
 
     # data input
-    p3 = p.add_mutually_exclusive_group(required=True)
+    g_in = p.add_argument_group("input (choose one)")
+    p3 = g_in.add_mutually_exclusive_group(required=True)
     p3.add_argument("-f", dest="file", metavar="PATH", help="read input from a file")
     p3.add_argument(
-        "-s", dest="string", metavar='"STRING"', help="input as a quoted string"
+        "-s", dest="string", metavar='"STRING"', help="input as a quoted UTF-8 string"
     )
     p3.add_argument(
         "-hex",
@@ -76,7 +132,7 @@ def build_parser():
         nargs="?",
         const=STDIN_ARG,
         metavar="HEX",
-        help="input as hex",
+        help="input as hex digits",
     )
     p3.add_argument(
         "-b",
@@ -92,7 +148,7 @@ def build_parser():
         nargs="?",
         const=STDIN_ARG,
         metavar='"BYTES"',
-        help='input as decimal byte values 0-255, e.g. "222 173 190 239"',
+        help="input as decimal byte values 0-255",
     )
     p3.add_argument(
         "-Bl",
@@ -100,20 +156,24 @@ def build_parser():
         nargs="?",
         const=STDIN_ARG,
         metavar='"LITERAL"',
-        help="input as a Python bytes literal, e.g. \"b'\\xde\\xad\\xbe\\xef'\"",
+        help="input as a Python bytes literal",
     )
     p3.add_argument(
         "-raw",
         dest="raw",
         action="store_true",
-        help="read raw binary input from stdin, e.g. head -c 64 /dev/urandom | venture128 ... -raw",
+        help="read raw binary input from stdin",
     )
-    p.add_argument("-o", dest="output", metavar="PATH", help="write output to a file")
-    p.add_argument(
+
+    g_out = p.add_argument_group("output")
+    g_out.add_argument(
+        "-o", dest="output", metavar="PATH", help="write output to a file instead of stdout"
+    )
+    g_out.add_argument(
         "-of",
         dest="out_format",
         choices=["raw", "hex", "bits"],
-        help="output format (if not included, then raw with -o or hex on stdout)",
+        help="output format (default: raw with -o, hex on stdout)",
     )
     return p
 
