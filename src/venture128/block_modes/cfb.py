@@ -1,11 +1,11 @@
 import secrets
 
 from venture128.modules.enc_dec import encrypt_block
-from venture128.variables.constants import BLOCK_SIZE_BYTES
+from venture128.variables.constants import BLOCK_SIZE_BYTES, BLOCK_SIZE_BITS
 
 
 def _parse_segment_size(segment_size: int) -> int:
-    if 1 <= segment_size <= BLOCK_SIZE_BYTES:
+    if 1 <= segment_size <= BLOCK_SIZE_BITS:
         return segment_size
     if segment_size % 8 == 0 and 8 <= segment_size <= BLOCK_SIZE_BYTES * 8:
         return segment_size // 8
