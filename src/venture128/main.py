@@ -1,4 +1,5 @@
 import argparse
+import ast
 import sys
 from pathlib import Path
 
@@ -126,6 +127,31 @@ def parse_hex(text: str) -> bytes:
     return bytes.fromhex(digits)
 
 
+def parse_bits(text: str) -> bytes:
+    clean_bits = "".join(text.split())
+    if any(c not in "01" for c in clean_bits):
+        raise ValueError("invalid bit input, only '0' and '1' allowed")
+    if len(clean_bits) % 8 != 0:
+        raise ValueError(
+            f"invalid bit input, length must be a multiple of 8, got {len(clean_bits)}"
+        )
+    return bytes(int(clean_bits[i : i + 8], 2) for i in range(0, len(clean_bits), 8))
+
+
+def parse_byte_literal(text: str) -> bytes:
+    try:
+        value = ast.literal_eval(text.strip())
+    except SyntaxError as e:
+        raise ValueError(f"invalid bytes literal: {e.msg}")
+    except ValueError:
+        raise ValueError("invalid bytes literal, only literals like b'\\x00' are allowed")
+    if not isinstance(value, bytes):
+        raise ValueError(
+            f"expected a bytes literal like b'\\x00', got {type(value).__name__}"
+        )
+    return value
+
+
 def read_key(args: argparse.Namespace) -> bytes:
     if args.key is not None:
         key = args.key.encode()
@@ -141,15 +167,13 @@ def read_key(args: argparse.Namespace) -> bytes:
 
 
 def read_input_data(args: argparse.Namespace) -> bytes:
-    """Ingests input data from whichever CLI option was passed."""
-    if args.file:
+    if args.file is not None:
         return Path(args.file).read_bytes()
     if args.string is not None:
         return args.string.encode()
     if args.raw:
         return sys.stdin.buffer.read()
 
-    # Read text for formatted stdin inputs
     if (
         args.hex == STDIN_ARG
         or args.bits == STDIN_ARG
@@ -163,23 +187,19 @@ def read_input_data(args: argparse.Namespace) -> bytes:
     if args.hex is not None:
         return parse_hex(raw_text if raw_text is not None else args.hex)
     if args.bits is not None:
-        text = raw_text if raw_text is not None else args.bits
-        clean_bits = "".join(text.split())
-        return bytes(
-            int(clean_bits[i : i + 8], 2) for i in range(0, len(clean_bits), 8)
-        )
+        return parse_bits(raw_text if raw_text is not None else args.bits)
     if args.byte_decimal is not None:
         text = raw_text if raw_text is not None else args.byte_decimal
         return bytes(int(x) for x in text.split())
     if args.byte_literal is not None:
-        text = raw_text if raw_text is not None else args.byte_literal
-        return eval(text)  # Expects standard byte literal string like b'\x00'
+        return parse_byte_literal(
+            raw_text if raw_text is not None else args.byte_literal
+        )
 
     raise ValueError("No valid input data provided.")
 
 
 def write_output(data: bytes, args: argparse.Namespace) -> None:
-    """Formats and writes output bytes to stdout or output file."""
     fmt = args.out_format
     if fmt is None:
         fmt = "raw" if args.output else "hex"
@@ -209,14 +229,9 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        # 1. Load and expand key
         master_key = read_key(args)
         round_keys = generate_round_keys(master_key)
-
-        # 2. Read input payload
         input_data = read_input_data(args)
-
-        # 3. Handle IV if required by mode
         mode = args.block_mode
         iv = None
         if mode in ("cbc", "cfb", "ofb", "ctr"):
@@ -225,11 +240,12 @@ def main() -> None:
             elif args.enc_dec_mode == "encrypt":
                 iv = generate_iv()
             else:
-                raise ValueError(
-                    f"IV is required for decryption in {mode.upper()} mode."
-                )
-
-        # 4. Dispatch cipher operations
+                if len(input_data) < BLOCK_SIZE_BYTES:
+                    raise ValueError(
+                        f"ciphertext is too short to contain a {BLOCK_SIZE_BYTES}-byte IV"
+                    )
+                iv = input_data[:BLOCK_SIZE_BYTES]
+                input_data = input_data[BLOCK_SIZE_BYTES:]
         if mode == "ecb":
             res = (
                 ecb.ecb_encrypt(input_data, round_keys)
@@ -264,16 +280,14 @@ def main() -> None:
         # Handle tuple return (data, iv) from encrypt modes
         if isinstance(res, tuple):
             output_data, used_iv = res
-            # Prepend IV to ciphertext if generated automatically without explicit output destination flag
             if not args.iv and args.enc_dec_mode == "encrypt":
                 output_data = used_iv + output_data
         else:
             output_data = res
 
-        # 5. Output results
         write_output(output_data, args)
 
-    except Exception as e:
+    except (ValueError, OSError) as e:
         parser.exit(1, f"venture128: error: {e}\n")
 
 
