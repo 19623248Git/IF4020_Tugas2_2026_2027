@@ -226,13 +226,25 @@ def read_key(args: argparse.Namespace) -> bytes:
     return key
 
 
+def read_stdin_text() -> str:
+    if sys.stdin.isatty():
+        print("reading from stdin, finish with Ctrl-D", file=sys.stderr)
+    return sys.stdin.read()
+
+
+def read_stdin_bytes() -> bytes:
+    if sys.stdin.isatty():
+        print("reading from stdin, finish with Ctrl-D", file=sys.stderr)
+    return sys.stdin.buffer.read()
+
+
 def read_input_data(args: argparse.Namespace) -> bytes:
     if args.file is not None:
         return Path(args.file).read_bytes()
     if args.string is not None:
         return args.string.encode()
     if args.raw:
-        return sys.stdin.buffer.read()
+        return read_stdin_bytes()
 
     if (
         args.hex == STDIN_ARG
@@ -240,7 +252,7 @@ def read_input_data(args: argparse.Namespace) -> bytes:
         or args.byte_decimal == STDIN_ARG
         or args.byte_literal == STDIN_ARG
     ):
-        raw_text = sys.stdin.read().strip()
+        raw_text = read_stdin_text().strip()
     else:
         raw_text = None
 
