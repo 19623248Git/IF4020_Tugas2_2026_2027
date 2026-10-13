@@ -1,15 +1,3 @@
-"""Entropy test for Venture128 in ECB, CBC, CFB, OFB, and CTR modes.
-
-Measures byte-level Shannon entropy:
-    H(X) = - sum_{i=0}^{255} P(x_i) * log2(P(x_i))
-
-Usage:
-    python ./tests/test_entropy.py
-    python ./tests/test_entropy.py --input tests/input/plaintext_long.txt
-    python ./tests/test_entropy.py --modes ecb cbc ctr --verbose
-    python ./tests/test_entropy.py --synthetic --size 4096
-"""
-
 import argparse
 import math
 import sys
@@ -34,7 +22,6 @@ MAX_BYTE_ENTROPY = 8.0  # bits per byte
 
 
 def shannon_entropy(data: bytes) -> float:
-    """Calculates Shannon entropy in bits per byte (0.0 to 8.0)."""
     if not data:
         return 0.0
     n = len(data)
@@ -50,7 +37,6 @@ def max_possible_entropy(data_len: int) -> float:
 
 
 def encrypt_mode(mode: str, plaintext: bytes, key: bytes, iv: bytes) -> bytes:
-    """Encrypts plaintext with specified mode and fixed IV. Returns ciphertext."""
     round_keys = generate_round_keys(key)
     if mode == "ecb":
         return ecb.ecb_encrypt(plaintext, round_keys)
@@ -88,21 +74,12 @@ def load_default_inputs(input_arg: str | None) -> list[tuple[str, bytes]]:
 
 
 def generate_synthetic_inputs(size: int = 1024) -> list[tuple[str, bytes]]:
-    """Generates synthetic test patterns to demonstrate entropy transformation."""
     # Ensure size is at least 16 bytes
     size = max(16, size)
-
-    # 1. Zero bytes (entropy = 0)
     zeros = b"\x00" * size
-
-    # 2. Repeated ASCII text (low entropy)
     pattern = b"Venture128-IF4020-Cryptography-Test-"
     repeated = (pattern * ((size // len(pattern)) + 1))[:size]
-
-    # 3. Counter sequence 0x00..0xFF repeating
     counter = bytes(i % 256 for i in range(size))
-
-    # 4. English natural text
     lorem = (
         b"In cryptography, a block cipher is a deterministic algorithm operating on fixed-length "
         b"groups of bits, termed a block. Symmetric-key ciphers use the same cryptographic keys for "
@@ -168,7 +145,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def print_histogram(data: bytes, title: str, top_n: int = 10) -> None:
-    """Displays top most frequent bytes."""
     counts = Counter(data).most_common(top_n)
     n = len(data)
     print(f"    [Top {top_n} Byte Distribution for {title}]:")
@@ -205,14 +181,8 @@ def run_entropy_analysis(
             print_histogram(plaintext, "Plaintext")
 
         print(
-            "--------------------------------------------------------------------------------"
-        )
-        print(
             f"{'Mode':<6}{'Plain(B)':>9}{'Cipher(B)':>10}{'H(Plain)':>10}"
-            f"{'H(Cipher)':>11}{'% of Max':>10}{'Delta H':>9}{'Status':>11}"
-        )
-        print(
-            "--------------------------------------------------------------------------------"
+            f"{'H(Cipher)':>11}{'% of Max':>10}"
         )
 
         for mode in modes:
@@ -221,17 +191,6 @@ def run_entropy_analysis(
             h_cipher = shannon_entropy(ciphertext)
             max_possible_cipher = max_possible_entropy(n_cipher)
             pct_max = (h_cipher / MAX_BYTE_ENTROPY) * 100.0
-            delta_h = h_cipher - h_plain
-
-            # Evaluation status:
-            # For adequate size (>= 256 bytes), entropy is expected to be very high (> 7.5 bits/byte).
-            # For small files, it should be close to sample upper bound.
-            if h_cipher >= 7.8:
-                status = "EXCELLENT"
-            elif h_cipher >= 7.0 or (h_cipher / max_possible_cipher >= 0.95):
-                status = "GOOD"
-            else:
-                status = "FAIR"
 
             row = {
                 "input_name": name,
@@ -241,15 +200,13 @@ def run_entropy_analysis(
                 "h_plain": round(h_plain, 4),
                 "h_cipher": round(h_cipher, 4),
                 "pct_of_max": round(pct_max, 2),
-                "delta_h": round(delta_h, 4),
                 "sample_max": round(max_possible_cipher, 4),
-                "status": status,
             }
             results.append(row)
 
             print(
                 f"{mode.upper():<6}{n_plain:>9}{n_cipher:>10}{h_plain:>10.4f}"
-                f"{h_cipher:>11.4f}{pct_max:>9.2f}%{delta_h:>+9.4f}{status:>11}"
+                f"{h_cipher:>11.4f}{pct_max:>9.2f}%"
             )
 
             if verbose:
@@ -290,19 +247,9 @@ def main() -> int:
             print(f"error: {e}", file=sys.stderr)
             return 1
 
-    print(
-        "================================================================================"
-    )
-    print(
-        "                      VENTURE128 CIPHERTEXT ENTROPY TEST                        "
-    )
-    print(
-        "================================================================================"
-    )
+    print("ENTROPY TEST")
     print(f"Key        : {key.hex()} ({key!r})")
-    print(f"IV (fixed) : {iv.hex()}")
-    print(f"Modes      : {', '.join(m.upper() for m in args.modes)}")
-    print(f"Max Entropy: {MAX_BYTE_ENTROPY:.1f} bits/byte (256 uniform byte symbols)\n")
+    print(f"IV         : {iv.hex()}")
 
     run_entropy_analysis(
         inputs=inputs,
@@ -312,7 +259,6 @@ def main() -> int:
         verbose=args.verbose,
     )
 
-    print("Analisis Entropi Selesai.")
     return 0
 
 

@@ -1,15 +1,3 @@
-"""Avalanche-effect test for Venture128 in ECB, CBC, CFB, OFB and CTR modes.
-
-What it measures:
-  1. Plaintext avalanche: flip 1 bit of plaintext -> % of ciphertext bits changed.
-  2. Key avalanche:       flip 1 bit of key       -> % of ciphertext bits changed.
-
-Usage:
-  python ./tests/test_avalanche.py
-  python ./tests/test_avalanche.py --input tests/input/plaintext_1block.txt
-  python ./tests/test_avalanche.py --modes ecb cbc ctr --trials 128 --verbose
-"""
-
 import argparse
 import sys
 from pathlib import Path
@@ -31,7 +19,6 @@ DEFAULT_INPUT_DIR = Path(__file__).resolve().parent / "input"
 
 
 def flip_bit(data: bytes, bit_index: int) -> bytes:
-    """Flip a single bit. bit_index 0 = MSB of byte 0."""
     total = len(data) * 8
     if not 0 <= bit_index < total:
         raise ValueError(f"bit_index {bit_index} out of range for {len(data)} bytes")
@@ -53,7 +40,6 @@ def avalanche_pct(c1: bytes, c2: bytes) -> float:
 
 
 def encrypt_mode(mode: str, plaintext: bytes, key: bytes, iv: bytes) -> bytes:
-    """Encrypt with a fixed IV (ECB ignores IV). Returns ciphertext only."""
     round_keys = generate_round_keys(key)
     if mode == "ecb":
         return ecb.ecb_encrypt(plaintext, round_keys)
@@ -73,7 +59,6 @@ def encrypt_mode(mode: str, plaintext: bytes, key: bytes, iv: bytes) -> bytes:
 
 
 def select_positions(nbytes: int, max_trials: int) -> list[int]:
-    """All bit positions if small, else evenly-spaced sample."""
     total = nbytes * 8
     if total <= max_trials:
         return list(range(total))
@@ -89,8 +74,6 @@ def run_avalanche(
     target: str,
     positions: list[int],
 ) -> list[float]:
-    """Flip one bit at a time in `target` ('plaintext' or 'key') and
-    return the avalanche % for each flipped position."""
     base_ct = encrypt_mode(mode, plaintext, key, iv)
     scores: list[float] = []
     for pos in positions:
@@ -194,18 +177,17 @@ def main() -> int:
         return 1
 
     print(f"key        : {key.hex()} ({key!r})")
-    print(f"IV (fixed) : {iv.hex()}")
-    print(f"modes      : {' '.join(args.modes)}\n")
+    print(f"IV         : {iv.hex()}")
 
     rows: list[dict] = []
     for f in input_files:
         plaintext = f.read_bytes()
-        print(f"=== {f.name} ({len(plaintext)} bytes) ===")
+        print("======================================================================")
+        print(f"{f.name} ({len(plaintext)} bytes)")
         print(
             f"{'mode':<6}{'test':<12}{'trials':>7}"
             f"{'avg%':>9}{'min%':>9}{'max%':>9}{'ct_len':>9}"
         )
-        print("-" * 61)
         for mode in args.modes:
             base_ct = encrypt_mode(mode, plaintext, key, iv)
             for target in ("plaintext", "key"):
