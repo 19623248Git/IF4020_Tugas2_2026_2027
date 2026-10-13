@@ -6,6 +6,7 @@ from pathlib import Path
 
 from venture128.block_modes import cbc, cfb, ctr, ecb, ofb
 from venture128.modules.iv import generate_iv, parse_iv
+from venture128.modules.histogram import compare_modes, write_histogram_png
 from venture128.modules.key_expand import generate_round_keys
 from venture128.variables.constants import BLOCK_SIZE_BYTES, KEY_SIZE_BYTES
 
@@ -174,6 +175,11 @@ def build_parser():
         dest="out_format",
         choices=["raw", "hex", "bits"],
         help="output format (default: raw with -o, hex on stdout)",
+    )
+    g_analysis = p.add_argument_group("histogram analysis")
+    g_analysis.add_argument(
+        "--histogram", action="store_true",
+        help="compare all five modes and save histograms/INPUT_histogram.png",
     )
     return p
 
@@ -350,6 +356,23 @@ def main() -> None:
                 if args.enc_dec_mode == "encrypt"
                 else ctr.ctr_decrypt(input_data, round_keys, iv)
             )
+
+        result_data = res[0] if isinstance(res, tuple) else res
+        if args.histogram:
+            plaintext, ciphertext = (
+                (input_data, result_data) if args.enc_dec_mode == "encrypt"
+                else (result_data, input_data)
+            )
+            source_name = Path(args.file).name if args.file else "input"
+            chart_path = Path("histograms") / f"{Path(source_name).stem}_histogram.png"
+            protected = [Path(path).resolve() for path in
+                         (args.file, args.output, args.key_file) if path]
+            if args.iv and args.iv[0].lower() == "file":
+                protected.append(Path(args.iv[1]).resolve())
+            if chart_path.resolve() in protected:
+                raise ValueError("Histogram PNG path conflicts with an input or output file.")
+            ciphertexts = compare_modes(plaintext, round_keys, mode, ciphertext, iv)
+            write_histogram_png(chart_path, plaintext, ciphertexts, source_name)
 
         # Handle tuple return (data, iv) from encrypt modes
         if isinstance(res, tuple):

@@ -6,6 +6,7 @@ Implementasi block cipher "baru" untuk Tugas 2 IF4020 Kriptografi. Venture128 me
 
 - Python 3.14 atau lebih baru.
 - uv untuk mengelola environment.
+- Matplotlib untuk grafik histogram (dipasang otomatis oleh `uv sync`).
 - Build backend menggunakan `uv build`.
 
 ## Menjalankan Program
@@ -39,5 +40,6 @@ uv run venture128 --block-mode cbc -d -key "0123456789abcdef" -f cipher.bin -o h
 | `-s` / `-f` | Masukan teks / berkas |
 | `-o` | Berkas keluaran; format default berupa byte mentah |
 | `-of` | Format keluaran: `raw`, `hex`, atau `bits` |
+| `--histogram` | Grafik PNG plaintext dan kelima mode, tanpa laporan terminal |
 
 Untuk CBC, CFB, OFB, dan CTR, IV/counter awal dibuat otomatis dan disimpan di depan ciphertext. Saat dekripsi, program membacanya kembali. Jika menggunakan `-iv` secara manual, nilai tersebut harus diberikan kembali saat dekripsi. ECB tidak menggunakan IV.

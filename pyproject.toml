@@ -7,7 +7,7 @@ authors = [
     { name = "19623248Git", email = "13523032@std.stei.itb.ac.id" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = ["matplotlib"]
 
 [project.scripts]
 venture128 = "venture128.main:main"
