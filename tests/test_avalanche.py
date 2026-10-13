@@ -144,9 +144,6 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument(
         "--verbose", action="store_true", help="print per-bit-position avalanche %%"
     )
-    ap.add_argument(
-        "--output", default=None, help="optional CSV path for the summary table"
-    )
     return ap.parse_args()
 
 
